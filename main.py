@@ -206,6 +206,7 @@ async def on_ready():
     connection.start()
     auto_stream_start.start()
     auto_stream_end.start()
+    monday_avg.start()
     leaderboard_check.start()
     print("connected to: ", con.get_server_info())
     try:
