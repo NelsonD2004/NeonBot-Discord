@@ -12,13 +12,17 @@ import pytz
 import random
 from discord.interactions import Interaction
 from discord import Member
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 con = pymysql.connect(
-    host="db-mfl-01.sparkedhost.us",
-    port=3306,
-    user="u109224_Krhr5CV2M2",
-    passwd="LzwM5tsReqzPH^1I1+@@XA2A",
-    database="s109224_Bot",
+    host=os.getenv("HOST"),
+    port=int(os.getenv("PORT")),
+    user=os.getenv("DBUSER"),
+    passwd=os.getenv("PASSWORD"),
+    database=os.getenv("DATABASE"),
 )
 
 cur = con.cursor()
@@ -31,11 +35,11 @@ async def connection():
     global con
     global cur
     con = pymysql.connect(
-        host="db-mfl-01.sparkedhost.us",
-        port=3306,
-        user="u109224_Krhr5CV2M2",
-        passwd="LzwM5tsReqzPH^1I1+@@XA2A",
-        database="s109224_Bot",
+        host=os.getenv("HOST"),
+        port=int(os.getenv("PORT")),
+        user=os.getenv("DBUSER"),
+        passwd=os.getenv("PASSWORD"),
+        database=os.getenv("DATABASE"),
     )
 
     cur = con.cursor()
@@ -1678,5 +1682,5 @@ async def slots(interaction: discord.Interaction, amount: int):
     # time.sleep(0.2) best timing
 
 
-bot.run("MTExMjQ2OTY4MDU5NTE1MjkxNw.GeAxW5.0TTdElhqfViY_zle-Z_RdBudns_YckUFfHXLn8")
+bot.run(os.getenv("BOTTOKEN"))
 # -------------------------------------------------------------------#
