@@ -21,7 +21,7 @@ con = pymysql.connect(
     host=os.getenv("HOST"),
     port=int(os.getenv("PORT")),
     user=os.getenv("DBUSER"),
-    passwd=os.getenv("PASSWORD"),
+    passwd=os.getenv("PASS"),
     database=os.getenv("DATABASE"),
 )
 
@@ -38,7 +38,7 @@ async def connection():
         host=os.getenv("HOST"),
         port=int(os.getenv("PORT")),
         user=os.getenv("DBUSER"),
-        passwd=os.getenv("PASSWORD"),
+        passwd=os.getenv("PASS"),
         database=os.getenv("DATABASE"),
     )
 
