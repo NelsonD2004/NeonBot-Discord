@@ -339,9 +339,8 @@ class EmbedSections:
             color=0x6441A5,
         )
         embed.add_field(
-            name="Alternate urls: Youtube Stream",
-            link="https://www.youtube.com/@Tatox3_",
-            value="",
+            name="Alternate",
+            value="[Youtube](https://www.youtube.com/@Tatox3_)",
         )
         embed.set_image(url=self.twitchNotiImg)
         return embed
