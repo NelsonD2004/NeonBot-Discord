@@ -657,103 +657,122 @@ async def clear(interaction: discord.Interaction):
     description="Link the discord bot to your twitch account **CASE SENSITIVE**",
 )
 async def link(
-    interaction: discord.Interaction, YoutubeName: str = None, TwitchName: str = None
+    interaction: discord.Interaction, youtube: str = None, twitch: str = None
 ):
     channel = bot.get_channel(1119398653468082270)
-    if YoutubeName is None and TwitchName is None:
+    if youtube is None and twitch is None:
         await interaction.response.send_message(
             "Please specify your twitch/youtube username..."
         )
     else:
-        cur.execute(f"SELECT TwitchName FROM Economy WHERE TwitchName = '{TwitchName}'")
-        tresult = cur.fetchone()
+        if twitch:
+            cur.execute(f"SELECT DiscordID FROM Economy WHERE TwitchName = '{twitch}'")
+            discord_tresult = cur.fetchone()
+        if youtube:
+            cur.execute(
+                f"SELECT DiscordID FROM Economy WHERE YoutubeName = '{youtube}'"
+            )
+            discord_yresult = cur.fetchone()
         cur.execute(
-            f"SELECT YoutubeName FROM Economy WHERE YoutubeName = '{YoutubeName}'"
+            f"SELECT DiscordID FROM Economy WHERE DiscordID = {interaction.user.id}"
         )
-        yresult = cur.fetchone()
-        cur.execute(f"SELECT DiscordID FROM Economy WHERE TwitchName = '{TwitchName}'")
-        discord_tresult = cur.fetchone()
-        cur.execute(
-            f"SELECT YoutubeName FROM Economy WHERE YoutubeName = '{YoutubeName}'"
-        )
-        yresult = cur.fetchone()
-        cur.execute(
-            f"SELECT DiscordID FROM Economy WHERE YoutubeName = '{YoutubeName}'"
-        )
-        discord_yresult = cur.fetchone()
-        if YoutubeName:
-            if int(discord_yresult[0]) == 0:
-                await interaction.response.send_message(
-                    f"Looks like this account is already linked to discord. Please contact floridaman if this is an error...",
-                    ephemeral=True,
+        discord_id = cur.fetchone()
+        if discord_id:
+            cur.execute(
+                f"SELECT YoutubeName FROM Economy WHERE DiscordID = {discord_id[0]}"
+            )
+            ytexists = cur.fetchone()
+            cur.execute(
+                f"SELECT TwitchName FROM Economy WHERE DiscordID = {discord_id[0]}"
+            )
+            twexists = cur.fetchone()
+
+            if twexists and youtube:
+                cur.execute(
+                    f"UPDATE Economy SET YoutubeName = '{youtube}' WHERE TwitchName =  '{twexists[0]}'"
                 )
-            try:
-                print(discord_tresult)
-                if int(discord_tresult[0]) != 0:
-                    await interaction.response.send_message(
-                        f"This Youtube name has already been registered to a user with the ID {discord_tresult[0]}",
-                        ephemeral=True,
-                    )
-                if yresult is None:
-                    pass
+                con.commit()
+                await interaction.response.send_message(
+                    content=f"{youtube}, {interaction.user.name}, and {twexists[0]} have been linked succesfully!"
+                )
+                await channel.send(
+                    f"""- - - LINK INFO:
+                Discord Name: {interaction.user.name}
+                Youtube Name: {youtube}
+                Twitch Name: {twexists[0]}
+                Discord ID: {interaction.user.id}
+                LINK SUCCESSFUL"""
+                )
+                return
+            elif ytexists and twitch:
+                cur.execute(
+                    f"UPDATE Economy SET TwitchName = '{twitch}' WHERE YoutubeName =  '{ytexists[0]}'"
+                )
+                con.commit()
+                await interaction.response.send_message(
+                    content=f"{twexists}, {interaction.user.name}, and {ytexists[0]} have been linked succesfully!"
+                )
+                await channel.send(
+                    f"""- - - LINK INFO:
+                Discord Name: {interaction.user.name}
+                Youtube Name: {ytexists[0]}
+                Twitch Name: {twitch}
+                Discord ID: {interaction.user.id}
+                LINK SUCCESSFUL"""
+                )
+                return
+
+        else:
+            if twitch:
                 if int(discord_tresult[0]) == 0:
                     cur.execute(
-                        f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE YoutubeName = '{YoutubeName}'"
+                        f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE TwitchName = '{twitch}'"
                     )
                     con.commit()
                     await interaction.response.send_message(
-                        f"{YoutubeName} and {interaction.user.name} have been linked succesfully!"
+                        f"{twitch} and {interaction.user.name} have been linked succesfully!"
                     )
                     await channel.send(
                         f"""- - - LINK INFO:
                     Discord Name: {interaction.user.name}
-                    Twitch Name: {YoutubeName}
+                    Twitch Name: {twitch}
                     Discord ID: {interaction.user.id}
                     LINK SUCCESSFUL"""
                     )
-                # FUcking make it an embed pls
-            except Exception as e:
-                print(e)
-                await interaction.response.send_message(
-                    "Please enter a valid youtube username, make sure you have sent at least 1 message in twitch chat",
-                    ephemeral=True,
-                )
-        elif TwitchName:
-            if int(discord_tresult[0]) == 0:
-                await interaction.response.send_message(
-                    f"Looks like this account is already linked to discord. Please contact floridaman if this is an error...",
-                    ephemeral=True,
-                )
-            try:
-                print(discord_tresult)
-                if int(discord_tresult[0]) != 0:
+                else:
                     await interaction.response.send_message(
-                        f"This twitch name has already been registered to a user with the ID {discord_tresult[0]}",
+                        f"This Twitch name has already been registered to a user with the ID {discord_tresult[0]}",
                         ephemeral=True,
                     )
-                if yresult is None:
-                    pass
-                if int(discord_tresult[0]) == 0:
-                    cur.execute(
-                        f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE TwitchName = '{TwitchName}'"
-                    )
-                    con.commit()
+                    return
+            if youtube:
+                if discord_yresult:
+                    if int(discord_yresult[0]) == 0:
+                        cur.execute(
+                            f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE YoutubeName = '{youtube}'"
+                        )
+                        con.commit()
+                        await interaction.response.send_message(
+                            f"{youtube} and {interaction.user.name} have been linked succesfully!"
+                        )
+                        await channel.send(
+                            f"""- - - LINK INFO:
+                        Discord Name: {interaction.user.name}
+                        Youtube Name: {youtube}
+                        Discord ID: {interaction.user.id}
+                        LINK SUCCESSFUL"""
+                        )
+                    else:
+                        await interaction.response.send_message(
+                            f"This Youtube account has already been registered to a user with the ID {discord_yresult[0]}",
+                            ephemeral=True,
+                        )
+                        return
+                else:
                     await interaction.response.send_message(
-                        f"{TwitchName} and {interaction.user.name} have been linked succesfully!"
+                        f"It seems this Youtube account has yet to send a message in tatox3's chat, attempting to link to a twitch account..."
                     )
-                    await channel.send(
-                        f"""- - - LINK INFO:
-                    Discord Name: {interaction.user.name}
-                    Twitch Name: {TwitchName}
-                    Discord ID: {interaction.user.id}
-                    LINK SUCCESSFUL"""
-                    )
-            except Exception as e:
-                print(e)
-                await interaction.response.send_message(
-                    "Please enter a valid Twitch username, make sure you have sent at least 1 message in twitch chat",
-                    ephemeral=True,
-                )
+                    return
 
 
 @bot.tree.command(
@@ -777,13 +796,14 @@ async def bal(interaction: discord.Interaction):
         else:
             balance = 0
             for i in result:
-                balance += i[0]
+                balance += int(i[0])
             await interaction.response.send_message(
-                f"Your current potato balance is {balance[0]}", ephemeral=True
+                f"Your current potato balance is {balance}", ephemeral=True
             )
-    except:
+    except Exception as e:
+        print(e)
         await interaction.response.send_message(
-            "Please use /link (twitch username) to link this bot to your twitch account and access your potatoes!"
+            "Please use /link (YoutubeName) or (TwitchName) to link this bot to your twitch account and access your potatoes!"
         )
 
 
@@ -858,7 +878,7 @@ async def recent_activity(interaction: discord.Interaction):
 
 @bot.tree.command(
     name="leaderboard",
-    description="Displays the top 5 potato owners in Henry's stream!",
+    description="Displays the top 5 potato owners in Henry's Twitch stream!",
 )
 async def leaderboard(interaction: discord.Interaction):
     cur.execute(
@@ -1016,7 +1036,13 @@ class StopButton(discord.ui.Button):
 @app_commands.default_permissions(administrator=True)
 async def skillCheck(interaction: discord.Interaction, amount: int):
     cur.execute(f"SELECT Potatoes FROM Economy WHERE DiscordID = {interaction.user.id}")
-    potatoes = cur.fetchone()
+    potatoes = cur.fetchall()
+    if potatoes is None:
+        pass
+    else:
+        balance = 0
+        for i in potatoes:
+            balance += int(i[0])
     cur.execute(
         f"SELECT DiscordID FROM Gambling WHERE DiscordID = {interaction.user.id}"
     )
@@ -1026,7 +1052,7 @@ async def skillCheck(interaction: discord.Interaction, amount: int):
             cur.execute(
                 f"INSERT INTO Gambling (TwitchID, DiscordID, Gambled, AmountGambled, AmountWon, AmountLost) VALUES ({0}, {interaction.user.id}, {0}, {0}, {0}, {0})"
             )
-        if int(potatoes[0]) >= amount and amount > 0:
+        if balance >= amount and amount > 0:
             cur.execute(
                 f"UPDATE Economy SET Potatoes = Potatoes - {amount} WHERE DiscordID = {interaction.user.id}"
             )
@@ -1391,7 +1417,13 @@ class ControlButtons(discord.ui.View):
 )
 async def bj(interaction: discord.Interaction, amount: int):
     cur.execute(f"SELECT Potatoes FROM Economy WHERE DiscordID = {interaction.user.id}")
-    potatoes = cur.fetchone()
+    potatoes = cur.fetchall()
+    if potatoes is None:
+        pass
+    else:
+        balance = 0
+        for i in potatoes:
+            balance += int(i[0])
     cur.execute(
         f"SELECT DiscordID FROM Gambling WHERE DiscordID = {interaction.user.id}"
     )
@@ -1401,7 +1433,7 @@ async def bj(interaction: discord.Interaction, amount: int):
             cur.execute(
                 f"INSERT INTO Gambling (TwitchID, DiscordID, Gambled, AmountGambled, AmountWon, AmountLost) VALUES ({0}, {interaction.user.id}, {0}, {0}, {0}, {0})"
             )
-        if int(potatoes[0]) >= amount and amount > 0:
+        if balance >= amount and amount > 0:
             cur.execute(
                 f"UPDATE Economy SET Potatoes = Potatoes - {amount} WHERE DiscordID = {interaction.user.id}"
             )
@@ -1471,8 +1503,13 @@ async def gstats(interaction: discord.Interaction, member: discord.Member = None
         # ------------------Economy-----------------------------
 
         cur.execute(f"SELECT Potatoes FROM Economy WHERE DiscordID = {member}")
-        economyStats = cur.fetchone()
-        potatoes = economyStats[0]
+        potatoes = cur.fetchall()
+        if potatoes is None:
+            pass
+        else:
+            balance = 0
+            for i in potatoes:
+                balance += int(i[0])
         cur.execute(f"SELECT DiscordID, Potatoes FROM Economy ORDER BY Potatoes DESC")
         result = cur.fetchall()
         count = 0
@@ -1503,26 +1540,26 @@ async def gstats(interaction: discord.Interaction, member: discord.Member = None
 
         embed.add_field(
             name=f"Since {interaction.user.joined_at.date().ctime()[:10]} of {interaction.user.joined_at.date().ctime()[19:]} you have managed to climb to rank {rank} on the server",
-            value=f"Balance: {potatoes}",
+            value=f"Balance (Youtube + Twitch): {balance}",
             inline=False,
         )
         embed.add_field(name="✩─────────────✩────────────✩", value="", inline=False)
 
         if messages < 50:
             embed.add_field(
-                name=f"You have sent {messages} messages this month in Tatox3's chat",
+                name=f"You have sent {messages} messages this month in Tatox3's twitch chat",
                 value="",
                 inline=False,
             )
         elif 50 <= messages < 600:
             embed.add_field(
-                name=f"You've been active this month with {messages} messages in Tatox3's chat",
+                name=f"You've been active this month with {messages} messages in Tatox3's twitch chat",
                 value="",
                 inline=False,
             )
         else:
             embed.add_field(
-                name=f"You've chatted up a storm this month, sending {messages} messages in Tatox3's chat is no small feat",
+                name=f"You've chatted up a storm this month, sending {messages} messages in Tatox3's twitch chat is no small feat",
                 value="",
                 inline=False,
             )
@@ -1555,9 +1592,16 @@ async def gstats(interaction: discord.Interaction, member: discord.Member = None
 
         # ------------------Economy-----------------------------
 
-        cur.execute(f"SELECT Potatoes FROM Economy WHERE DiscordID = {member.id}")
-        economyStats = cur.fetchone()
-        potatoes = economyStats[0]
+        cur.execute(
+            f"SELECT Potatoes FROM Economy WHERE DiscordID = {interaction.user.id}"
+        )
+        potatoes = cur.fetchall()
+        if potatoes is None:
+            pass
+        else:
+            balance = 0
+            for i in potatoes:
+                balance += int(i[0])
         cur.execute(f"SELECT DiscordID, Potatoes FROM Economy ORDER BY Potatoes DESC")
         result = cur.fetchall()
         count = 0
@@ -1594,25 +1638,25 @@ async def gstats(interaction: discord.Interaction, member: discord.Member = None
 
         embed.add_field(
             name=f"Since {member.joined_at.date().ctime()[:10]} of {member.joined_at.date().ctime()[19:]} they have managed to climb to rank {count} on the server",
-            value=f"Balance: {potatoes}",
+            value=f"Balance: {balance}",
             inline=False,
         )
         embed.add_field(name="✩─────────────✩────────────✩", value="", inline=False)
         if messages < 50:
             embed.add_field(
-                name=f"They have sent {messages} messages this month in Tatox3's chat",
+                name=f"They have sent {messages} messages this month in Tatox3's twitch chat",
                 value="",
                 inline=False,
             )
         elif 50 <= messages < 600:
             embed.add_field(
-                name=f"They've been active this month with {messages} messages in Tatox3's chat",
+                name=f"They've been active this month with {messages} messages in Tatox3's twitch chat",
                 value="",
                 inline=False,
             )
         else:
             embed.add_field(
-                name=f"They've chatted up a storm this month, sending {messages} messages in Tatox3's chat is no small feat",
+                name=f"They've chatted up a storm this month, sending {messages} messages in Tatox3's twitch chat is no small feat",
                 value="",
                 inline=False,
             )
