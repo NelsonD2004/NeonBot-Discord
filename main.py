@@ -500,6 +500,12 @@ class UnlinkModal(ui.Modal, title="Unlink Command"):
         required=False,
         default="None",
     )
+    youtubename = ui.TextInput(
+        label="youtube name to unlink from (Optional)",
+        style=discord.TextStyle.short,
+        required=False,
+        default="None",
+    )
     reason = ui.TextInput(
         label="Reason (Optional)",
         style=discord.TextStyle.paragraph,
@@ -511,7 +517,7 @@ class UnlinkModal(ui.Modal, title="Unlink Command"):
         member = bot.get_user(int(self.memberid.value))
         channel = bot.get_channel(1119398653468082270)
         try:
-            if self.twitchname.value == "None":
+            if self.twitchname.value == "None" and self.youtubename.value == "None":
                 cur.execute(
                     f"UPDATE Economy SET DiscordID = {0} WHERE DiscordID = {int(self.memberid.value)}"
                 )
@@ -527,9 +533,9 @@ class UnlinkModal(ui.Modal, title="Unlink Command"):
                     Reason: {self.reason.value}
                     UNLINK SUCCESSFUL"""
                 )
-            else:
+            elif self.twitchname.value != "None":
                 cur.execute(
-                    f"UPDATE Economy SET DiscordiD = {0} WHERE TwitchName = '{str(self.twitchname.value)}'"
+                    f"UPDATE Economy SET DiscordID = {0} WHERE TwitchName = '{str(self.twitchname.value)}'"
                 )
                 con.commit()
 
@@ -540,6 +546,23 @@ class UnlinkModal(ui.Modal, title="Unlink Command"):
                     f"""- - - LINK INFO:
                     Discord Name: {member.display_name}
                     Twitch Name: {self.twitchname.value}
+                    Discord ID: {self.memberid.value}
+                    Reason: {self.reason.value}
+                    UNLINK SUCCESSFUL"""
+                )
+            elif self.youtubename.value != "None":
+                cur.execute(
+                    f"UPDATE Economy SET DiscordID = {0} WHERE YoutubeName = '{str(self.youtubename.value)}'"
+                )
+                con.commit()
+
+                await interaction.response.send_message(
+                    f"Successfully unlinked {member.mention} @ {self.youtubename.value}"
+                )
+                await channel.send(
+                    f"""- - - LINK INFO:
+                    Discord Name: {member.display_name}
+                    Twitch Name: {self.youtubename.value}
                     Discord ID: {self.memberid.value}
                     Reason: {self.reason.value}
                     UNLINK SUCCESSFUL"""
@@ -633,48 +656,58 @@ async def clear(interaction: discord.Interaction):
     name="link",
     description="Link the discord bot to your twitch account **CASE SENSITIVE**",
 )
-async def link(interaction: discord.Interaction, twitchname: str = None):
+async def link(
+    interaction: discord.Interaction, YoutubeName: str = None, TwitchName: str = None
+):
     channel = bot.get_channel(1119398653468082270)
-    if twitchname is None:
+    if YoutubeName is None and TwitchName is None:
         await interaction.response.send_message(
-            "Please specify your twitch username..."
+            "Please specify your twitch/youtube username..."
         )
     else:
-        cur.execute(f"SELECT TwitchName FROM Economy WHERE TwitchName = '{twitchname}'")
-        result = cur.fetchone()
-        cur.execute(f"SELECT DiscordID FROM Economy WHERE TwitchName = '{twitchname}'")
-        discord_result = cur.fetchone()
+        cur.execute(f"SELECT TwitchName FROM Economy WHERE TwitchName = '{TwitchName}'")
+        tresult = cur.fetchone()
         cur.execute(
-            f"SELECT DiscordID FROM Economy WHERE DiscordID = '{interaction.user.id}'"
+            f"SELECT YoutubeName FROM Economy WHERE YoutubeName = '{YoutubeName}'"
         )
-        discord_id = cur.fetchone()
-        if discord_id is not None:
-            await interaction.response.send_message(
-                f"Looks like you are already linked to an account. Please contact floridaman if you wish to change this...",
-                ephemeral=True,
-            )
-        else:
+        yresult = cur.fetchone()
+        cur.execute(f"SELECT DiscordID FROM Economy WHERE TwitchName = '{TwitchName}'")
+        discord_tresult = cur.fetchone()
+        cur.execute(
+            f"SELECT YoutubeName FROM Economy WHERE YoutubeName = '{YoutubeName}'"
+        )
+        yresult = cur.fetchone()
+        cur.execute(
+            f"SELECT DiscordID FROM Economy WHERE YoutubeName = '{YoutubeName}'"
+        )
+        discord_yresult = cur.fetchone()
+        if YoutubeName:
+            if int(discord_yresult[0]) == 0:
+                await interaction.response.send_message(
+                    f"Looks like this account is already linked to discord. Please contact floridaman if this is an error...",
+                    ephemeral=True,
+                )
             try:
-                print(discord_result)
-                if int(discord_result[0]) != 0:
+                print(discord_tresult)
+                if int(discord_tresult[0]) != 0:
                     await interaction.response.send_message(
-                        f"This twitch name has already been registered to a user with the ID {discord_result[0]}",
+                        f"This Youtube name has already been registered to a user with the ID {discord_tresult[0]}",
                         ephemeral=True,
                     )
-                if result is None:
+                if yresult is None:
                     pass
-                if int(discord_result[0]) == 0:
+                if int(discord_tresult[0]) == 0:
                     cur.execute(
-                        f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE TwitchName = '{twitchname}'"
+                        f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE YoutubeName = '{YoutubeName}'"
                     )
                     con.commit()
                     await interaction.response.send_message(
-                        f"{twitchname} and {interaction.user.name} have been linked succesfully!"
+                        f"{YoutubeName} and {interaction.user.name} have been linked succesfully!"
                     )
                     await channel.send(
                         f"""- - - LINK INFO:
                     Discord Name: {interaction.user.name}
-                    Twitch Name: {twitchname}
+                    Twitch Name: {YoutubeName}
                     Discord ID: {interaction.user.id}
                     LINK SUCCESSFUL"""
                     )
@@ -682,7 +715,43 @@ async def link(interaction: discord.Interaction, twitchname: str = None):
             except Exception as e:
                 print(e)
                 await interaction.response.send_message(
-                    "Please enter a valid twitch username, make sure you have sent at least 1 message in twitch chat",
+                    "Please enter a valid youtube username, make sure you have sent at least 1 message in twitch chat",
+                    ephemeral=True,
+                )
+        elif TwitchName:
+            if int(discord_tresult[0]) == 0:
+                await interaction.response.send_message(
+                    f"Looks like this account is already linked to discord. Please contact floridaman if this is an error...",
+                    ephemeral=True,
+                )
+            try:
+                print(discord_tresult)
+                if int(discord_tresult[0]) != 0:
+                    await interaction.response.send_message(
+                        f"This twitch name has already been registered to a user with the ID {discord_tresult[0]}",
+                        ephemeral=True,
+                    )
+                if yresult is None:
+                    pass
+                if int(discord_tresult[0]) == 0:
+                    cur.execute(
+                        f"UPDATE Economy SET DiscordID = {interaction.user.id} WHERE TwitchName = '{TwitchName}'"
+                    )
+                    con.commit()
+                    await interaction.response.send_message(
+                        f"{TwitchName} and {interaction.user.name} have been linked succesfully!"
+                    )
+                    await channel.send(
+                        f"""- - - LINK INFO:
+                    Discord Name: {interaction.user.name}
+                    Twitch Name: {TwitchName}
+                    Discord ID: {interaction.user.id}
+                    LINK SUCCESSFUL"""
+                    )
+            except Exception as e:
+                print(e)
+                await interaction.response.send_message(
+                    "Please enter a valid Twitch username, make sure you have sent at least 1 message in twitch chat",
                     ephemeral=True,
                 )
 
@@ -700,13 +769,17 @@ async def unlink(interaction: discord.Interaction):
 async def bal(interaction: discord.Interaction):
     user_id = interaction.user.id
     cur.execute(f"SELECT Potatoes FROM Economy WHERE DiscordID = '{user_id}'")
-    result = cur.fetchone()
+    result = cur.fetchall()
+
     try:
         if result is None:
             pass
         else:
+            balance = 0
+            for i in result:
+                balance += i[0]
             await interaction.response.send_message(
-                f"Your current potato balance is {result[0]}", ephemeral=True
+                f"Your current potato balance is {balance[0]}", ephemeral=True
             )
     except:
         await interaction.response.send_message(
